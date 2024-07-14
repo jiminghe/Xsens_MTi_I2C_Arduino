@@ -4,7 +4,7 @@
 
 This example code is tested between the [Arduino MEGA R3 Board 2560](https://docs.arduino.cc/hardware/mega-2560/) and the Xsens MTi-3-DK(Hardware version 3).
 
-##Interface
+## Interface
 
 | Arduino Mega  | MTi-3-DK     |
 | ------------- | ------------ |
