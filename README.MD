@@ -10,9 +10,9 @@ This example code is tested between the [Arduino MEGA R3 Board 2560](https://doc
 | ------------- | ------------ |
 | 3V3 Power     | 3V3(P101-4)  |
 | GND           | GND(P101-6)  |
-| SCL1          | DRDY(P102-4) |
+| Digital Pin 3 | DRDY(P102-4) |
 | SDA1          | SDA(P100-9)  |
-| Digital Pin 3 | SCL(P100-10) |
+| SCL1          | SCL(P100-10) |
 
 or see this image:
 
