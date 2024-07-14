@@ -39,7 +39,8 @@ In this case, you could get data up to 64 bytes, and this could cover 3 types of
 ## Change the Output Configuration
 If you want to change the output, you could change the `output_config_payload` in the [mt_application.cpp](mt_application.cpp):
 ```
-uint8_t output_config_payload[] = { 0x20, 0x30, 0x00, 0x01, 0x40, 0x20, 0x00, 0x01, 0x80, 0x20, 0x00, 0x01, 0xC0, 0x20, 0x00, 0x01 };
+uint8_t data_rate = 1; //change this value to desired data
+uint8_t output_config_payload[] = { 0x20, 0x30, 0x00, data_rate, 0x40, 0x20, 0x00, data_rate, 0x80, 0x20, 0x00, data_rate, 0xC0, 0x20, 0x00, data_rate };
 ```
 For more information, please refer to:
 - [How to use Device Data View to learn MT Low Level Communications](https://base.movella.com/s/article/article/How-to-use-Device-Data-View-to-learn-MT-Low-Level-Communications)

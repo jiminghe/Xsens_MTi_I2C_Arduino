@@ -3,17 +3,20 @@
 #include "xsdataidentifier.h"
 
 
-DataParser::DataParser(const uint8_t* data)
-:m_rawpacket(data)
+DataParser::DataParser()
 {
-  m_packet_length = data[3] + 5;
+  m_xspacket = new XsDataPacket();
   //Debug print:
   // String str = "m_packet_length = 0x" + String(m_packet_length, HEX);
   // Serial.println(str);
 }
 
 DataParser::~DataParser() {
-    delete[] m_rawpacket;
+    delete m_xspacket;
+}
+
+XsDataPacket* DataParser::getXsDatePacket() {
+    return m_xspacket;
 }
 
 
@@ -54,21 +57,21 @@ uint32_t DataParser::dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day,
 }
 
 
-XsDataPacket DataParser::parseDataPacket() {
+void DataParser::parseDataPacket(const uint8_t* data) {
+    m_packet_length = data[3] + 5;
     size_t input_size = m_packet_length;
     if (input_size < 3) return; // Ensure there's enough data to start parsing
 
-    XsDataPacket xbusData;
     // packet = FA FF 36 16 10 60 04 09 3A 7C B7 20 30 0C BF 49 1A 52 BE C3 6A 10 C3 2E E2 EF 3E
     size_t offset = 2; // Start after the presumed packet header FA FF
 
     // Check for MTData2 preamble
-    if (m_rawpacket[offset] == XMID_MtData2)
+    if (data[offset] == XMID_MtData2)
     {
         offset++; // move past MTData2 identifier
         if (offset >= input_size) return; // Safety check
 
-        uint8_t dataLengthMT = m_rawpacket[offset]; // data length for MTData2
+        uint8_t dataLengthMT = data[offset]; // data length for MTData2
         offset++; // move to the first data type in MTData2
 
         if (offset >= input_size) return; // Safety check
@@ -81,49 +84,21 @@ XsDataPacket DataParser::parseDataPacket() {
             if (offset + 2 > input_size) return; // Ensure space for dataType and dataLength
             offset += 2; // Move past the 2-byte dataType
 
-            uint8_t dataLength = m_rawpacket[offset];
+            uint8_t dataLength = data[offset];
             offset++; // Move past dataLength byte
 
             if (offset + dataLength > input_size) return; // Ensure we don't read past the buffer
 
-            const uint8_t* dataPtr = &m_rawpacket[offset - 3]; // Adjust this to point to the start of dataType
-            parseMTData2(&xbusData, dataPtr, dataLength + 3);
+            const uint8_t* dataPtr = &data[offset - 3]; // Adjust this to point to the start of dataType
+            parseMTData2(dataPtr, dataLength + 3);
 
             offset += dataLength; // Move past the data to the next data type
         }
     }
 
-    return xbusData;
 }
 
 
-
-// void DataParser::parseDataPacket(const std::vector<uint8_t> &packet, Xbus &xbusData)
-// {
-//     size_t offset = 2; // packet = FA FF 36 16 10 60 04 09 3A 7C B7 20 30 0C BF 49 1A 52 BE C3 6A 10 C3 2E E2 EF 3E
-
-//     // Check for MTData2 preamble
-//     if (packet[offset] == XMID_MtData2)
-//     {
-//         offset++;                              // move past MTData2 identifier
-//         uint8_t dataLengthMT = packet[offset]; // data length for MTData2
-//         offset++;                              // move to the first data type in MTData2
-
-//         size_t endMTData2 = offset + dataLengthMT; // Calculate the end of the MTData2 block
-
-//         while (offset < endMTData2)
-//         {
-//             offset += 2; // Move past the 2-byte dataType
-//             uint8_t dataLength = packet[offset];
-
-//             offset++;                                                      // Move past dataLength byte
-//             uint8_t *dataPtr = const_cast<uint8_t *>(&packet[offset - 3]); // Adjust this to point to the start of dataType
-//             parseMTData2(&xbusData, dataPtr, dataLength + 3);
-
-//             offset += dataLength; // Move past the data to the next data type
-//         }
-//     }
-// }
 
 void DataParser::dataswapendian(uint8_t *data, int len)
 {
@@ -160,7 +135,7 @@ double DataParser::parseFP1632(const uint8_t *data)
     return rv_d;
 }
 
-void DataParser::parseMTData2(XsDataPacket *xspacket, uint8_t *data, uint8_t datalength)
+void DataParser::parseMTData2(uint8_t *data, uint8_t datalength)
 {
     int offset = 0;
 
@@ -173,14 +148,14 @@ void DataParser::parseMTData2(XsDataPacket *xspacket, uint8_t *data, uint8_t dat
         {
         case XDI_PacketCounter:
             dataswapendian(&data[offset], 2);
-            xspacket->packetCounter = *reinterpret_cast<uint16_t *>(&data[offset]);
-            xspacket->packetCounterAvailable = true;
+            m_xspacket->packetCounter = *reinterpret_cast<uint16_t *>(&data[offset]);
+            m_xspacket->packetCounterAvailable = true;
             offset += 2;
             break;
         case XDI_SampleTimeFine: // Sample time fine
             dataswapendian(&data[offset], 4);
-            xspacket->sampleTimeFine = *reinterpret_cast<uint32_t *>(&data[offset]);
-            xspacket->sampleTimeFineAvailable = true;
+            m_xspacket->sampleTimeFine = *reinterpret_cast<uint32_t *>(&data[offset]);
+            m_xspacket->sampleTimeFineAvailable = true;
             offset += 4;
             break;
         case XDI_UtcTime: // UTC Time stamp
@@ -215,68 +190,68 @@ void DataParser::parseMTData2(XsDataPacket *xspacket, uint8_t *data, uint8_t dat
             //uint32_t dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
             uint32_t epochTime = dateTimeToEpoch(tm_year, tm_mon, day, hour, minute, sec);
             // Convert to time_t (seconds since 1st Jan 1970)
-            xspacket->utcTime = epochTime + nanosec* 1e-9;
-            xspacket->utcTimeAvailable = true;
+            m_xspacket->utcTime = epochTime + nanosec* 1e-9;
+            m_xspacket->utcTimeAvailable = true;
             break;
         }
         case XDI_EulerAngles: // Euler Angles
             dataswapendian(&data[offset], 12);
-            memcpy(xspacket->euler, &data[offset], 12);
-            xspacket->eulerAvailable = true;
+            memcpy(m_xspacket->euler, &data[offset], 12);
+            m_xspacket->eulerAvailable = true;
             offset += 12;
             break;
         case XDI_Quaternion: // Quaternion.
             dataswapendian(&data[offset], 16);
-            memcpy(xspacket->quat, &data[offset], 16);
-            xspacket->quaternionAvailable = true;
-            xspacket->convertQuatToEuler();
+            memcpy(m_xspacket->quat, &data[offset], 16);
+            m_xspacket->quaternionAvailable = true;
+            m_xspacket->convertQuatToEuler();
             offset += 16;
             break;
         case XDI_Acceleration: // Acceleration
             dataswapendian(&data[offset], 12);
-            memcpy(xspacket->acc, &data[offset], 12);
-            xspacket->accAvailable = true;
+            memcpy(m_xspacket->acc, &data[offset], 12);
+            m_xspacket->accAvailable = true;
             offset += 12;
             break;
 
         case XDI_RateOfTurn: // Rate of Turn
             dataswapendian(&data[offset], 12);
-            memcpy(xspacket->gyro, &data[offset], 12);
-            xspacket->gyroAvailable = true;
+            memcpy(m_xspacket->gyro, &data[offset], 12);
+            m_xspacket->gyroAvailable = true;
             offset += 12;
             break;
 
         case 0x5042: // Latitude Longitude, FP16.32
-            xspacket->latlon[0] = parseFP1632(&data[offset]);
+            m_xspacket->latlon[0] = parseFP1632(&data[offset]);
             offset += 6;
-            xspacket->latlon[1] = parseFP1632(&data[offset]);
-            xspacket->latlonAvailable = true;
+            m_xspacket->latlon[1] = parseFP1632(&data[offset]);
+            m_xspacket->latlonAvailable = true;
             offset += 6;
             break;
         case 0x5022: // AltitudeEllipsoid, FP16.32
-            xspacket->altitude = parseFP1632(&data[offset]);
-            xspacket->altitudeAvailable = true;
+            m_xspacket->altitude = parseFP1632(&data[offset]);
+            m_xspacket->altitudeAvailable = true;
             offset += 6;
             break;
         case XDI_MagneticField: // Magnetic Field
             dataswapendian(&data[offset], 12);
-            memcpy(xspacket->mag, &data[offset], 12);
-            xspacket->magAvailable = true;
+            memcpy(m_xspacket->mag, &data[offset], 12);
+            m_xspacket->magAvailable = true;
             offset += 12;
             break;
         case XDI_StatusWord: // StatusWord
-            memcpy(&xspacket->statusWord, &data[offset], 4);
-            xspacket->statusWordAvailable = true;
+            memcpy(&m_xspacket->statusWord, &data[offset], 4);
+            m_xspacket->statusWordAvailable = true;
             offset += 4;
             break;
         case 0xD012: // Velocity, FP16.32
-            xspacket->vel[0] = parseFP1632(&data[offset]);
+            m_xspacket->vel[0] = parseFP1632(&data[offset]);
             offset += 6;
-            xspacket->vel[1] = parseFP1632(&data[offset]);
+            m_xspacket->vel[1] = parseFP1632(&data[offset]);
             offset += 6;
-            xspacket->vel[2] = parseFP1632(&data[offset]);
+            m_xspacket->vel[2] = parseFP1632(&data[offset]);
             offset += 6;
-            xspacket->velocityAvailable = true;
+            m_xspacket->velocityAvailable = true;
             break;
         default:
             String error_str = "Unrecognized data ID: 0x" + String(dataId, HEX) + " at offset " + String(offset) + ". Following bytes: ";

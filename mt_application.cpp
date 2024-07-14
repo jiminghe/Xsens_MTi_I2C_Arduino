@@ -7,6 +7,15 @@
 MtApplication::MtApplication(MtsspDriver* driver, uint8_t drdy)
   : m_state(STATE_Idle), m_driver(driver), m_drdy(drdy) {
   m_device = new MtsspInterface(m_driver);
+  m_parser = new DataParser();
+  m_xspacket = new XsDataPacket();
+}
+
+MtApplication::~MtApplication() {
+  // Clean up dynamically allocated memory
+  delete m_device;
+  delete m_parser;
+  delete m_xspacket;
 }
 
 
@@ -111,10 +120,12 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
 
           //FA FF C0 0C 40 20 00 64 80 20 00 64 C0 20 00 64 29
           //config Acceleration, RateOfTurn, MagneticField at 1Hz
-          uint8_t output_config_payload[] = { 0x20, 0x30, 0x00, 0x01, 0x40, 0x20, 0x00, 0x01, 0x80, 0x20, 0x00, 0x01, 0xC0, 0x20, 0x00, 0x01 };
+          uint8_t data_rate = 1; //change this value to desired data
+          uint8_t output_config_payload[] = { 0x20, 0x30, 0x00, data_rate, 0x40, 0x20, 0x00, data_rate, 0x80, 0x20, 0x00, data_rate, 0xC0, 0x20, 0x00, data_rate };
           //FA FF C0 18 10 60 FF FF 20 30 00 64 40 20 00 64 80 20 00 64 C0 20 00 64 E0 20 FF FF FD
           //config SampleTimeFine, EulerAngles, Acceleration, RateOfTurn, MagneticField, StatusWord at 100Hz.
-          Serial.println("Setting output data 1Hz");
+          String output_str = "Setting Output data to " + String(data_rate) + " Hz.";
+          Serial.println(output_str);
           //uint8_t output_config_payload[] = {0x10, 0x60, 0xFF, 0xFF, 0x20, 0x30, 0x00, 0x64, 0x40, 0x20, 0x00, 0x64, 0x80, 0x20, 0x00, 0x64, 0xC0, 0x20, 0x00, 0x64,0xE0, 0x20, 0xFF, 0xFF};
           size_t payload_size = sizeof(output_config_payload);
           Xbus_message(m_xbusTxBuffer, 0xFF, XMID_SetOutputConfiguration, payload_size);
@@ -163,12 +174,10 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
             // int data_length = data[3] + 5;
             // String hexStr = bytesToHexString(data, data_length);
             // Serial.println(hexStr);
-
-            DataParser* parser = NULL; //For Arduino, we must use dynamic library for this, otherwise, the prints get stuck.
-            parser = new DataParser(data);
-            XsDataPacket xspacket = parser->parseDataPacket();
+            m_parser->parseDataPacket(data);
+            m_xspacket = m_parser->getXsDatePacket();
             
-            onLiveDataAvailable(xspacket, sizeof(data));
+            onLiveDataAvailable(m_xspacket, sizeof(data));
 
           }
 

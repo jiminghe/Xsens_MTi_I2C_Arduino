@@ -6,6 +6,7 @@
 #include "mtssp_driver.h"
 #include "mtssp_interface.h"
 #include "xsdatapacket.h"
+#include "data_parser.h"
 
 
 
@@ -33,11 +34,12 @@ enum State {
 };
 
 // Define a callback type for data updates
-typedef void (*LiveDataCallback)(const XsDataPacket&, size_t size);
+typedef void (*LiveDataCallback)(const XsDataPacket*, size_t size);
 
 class MtApplication {
 public:
   MtApplication(MtsspDriver* driver, uint8_t drdy);
+  ~MtApplication();
   bool start();
   void readData();
   void setLiveDataCallback(LiveDataCallback callback);
@@ -60,6 +62,8 @@ private:
   // std::function<void(const XsDataPacket&)> onLiveDataAvailable;
 
   uint8_t m_drdy;
+  DataParser* m_parser; //For Arduino, we must use dynamic library for this, otherwise, the prints get stuck.
+  XsDataPacket* m_xspacket;
 };
 
 
