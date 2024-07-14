@@ -34,7 +34,7 @@ And the `utility\twi.h`'s value to:
 ```
   #define TWI_BUFFER_LENGTH 64
 ```
-In this case, you could get data up to 64 bytes, and this could cover 3 types of float32 data(euler, acc, rateofturn).
+In this case, you could get data up to 64 bytes, and this could cover 4 types of float32 data(euler, acc, rateofturn, mag).
 
 ## Change the Output Configuration
 If you want to change the output, you could change the `output_config_payload` in the [mt_application.cpp](mt_application.cpp):
