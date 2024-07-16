@@ -55,7 +55,7 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
     case STATE_Idle:
       {
         if (event == EVT_Start) {
-          Serial.println("Resetting the device");
+          Serial.println("Resetting the device"); //For the GNSS/INS, it would take tens of seconds to get position after reset.
           resetDevice();
           m_state = STATE_WaitForWakeUp;
         }
@@ -83,7 +83,8 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
         }
         else
         {
-          //doesn't work, have to reset it.
+          //doesn't work, have to reset it again, this is useful for the first time powering up the Arduino Mega board.
+          Serial.println("Resetting the device again");
           m_state = STATE_Idle;
           handleEvent(EVT_Start);
         }
@@ -118,12 +119,12 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
         if (event == EVT_XbusMessage && Xbus_getMessageId(data) == XMID_FirmwareRevision) {
           printRawXbus(data);
 
-          //FA FF C0 0C 40 20 00 64 80 20 00 64 C0 20 00 64 29
-          //config Acceleration, RateOfTurn, MagneticField at 1Hz
+          //utc_time 0x1010, sampletimefine 0x1060, statusword 0xE020
+          //euler angles 0x2030, quaternion 0x2010, free_acc 0x4030
+          //rateofturn 0x8020, acc 0x4020, mag 0xC020
+          //latlon FP1632 0x5042, alt FP1632 0x5022, velocity FP1632 0xD012
           uint8_t data_rate = 1; //change this value to desired data
-          uint8_t output_config_payload[] = { 0x20, 0x30, 0x00, data_rate, 0x40, 0x20, 0x00, data_rate, 0x80, 0x20, 0x00, data_rate, 0xC0, 0x20, 0x00, data_rate };
-          //FA FF C0 18 10 60 FF FF 20 30 00 64 40 20 00 64 80 20 00 64 C0 20 00 64 E0 20 FF FF FD
-          //config SampleTimeFine, EulerAngles, Acceleration, RateOfTurn, MagneticField, StatusWord at 100Hz.
+          uint8_t output_config_payload[] = { 0x10, 0x60, 0x00, data_rate, 0x20, 0x30, 0x00, data_rate, 0x40, 0x20, 0x00, data_rate, 0x80, 0x20, 0x00, data_rate};
           String output_str = "Setting Output data to " + String(data_rate) + " Hz.";
           Serial.println(output_str);
           //uint8_t output_config_payload[] = {0x10, 0x60, 0xFF, 0xFF, 0x20, 0x30, 0x00, 0x64, 0x40, 0x20, 0x00, 0x64, 0x80, 0x20, 0x00, 0x64, 0xC0, 0x20, 0x00, 0x64,0xE0, 0x20, 0xFF, 0xFF};

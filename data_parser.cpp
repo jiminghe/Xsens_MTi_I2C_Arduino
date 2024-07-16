@@ -49,11 +49,12 @@ uint32_t DataParser::dateToEpochDays(uint16_t year, uint8_t month, uint8_t day) 
 }
 
 // Convert date and time to epoch time in seconds
-uint32_t DataParser::dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day,
-                         uint8_t hour, uint8_t minute, uint8_t second) {
+double DataParser::dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day,
+                                     uint8_t hour, uint8_t minute, uint8_t second, uint32_t nanosecond) {
     uint32_t days = dateToEpochDays(year, month, day);
-    uint32_t totalSeconds = days * 86400 + hour * 3600 + minute * 60 + second;
-    return totalSeconds;
+    uint64_t totalSeconds = days * 86400 + hour * 3600 + minute * 60 + second;
+    double totalSecondsWithNanos = totalSeconds + (nanosecond * 1e-9);
+    return totalSecondsWithNanos;
 }
 
 
@@ -102,14 +103,23 @@ void DataParser::parseDataPacket(const uint8_t* data) {
 
 void DataParser::dataswapendian(uint8_t *data, int len)
 {
-    // Check if the length is divisible by 4
-    if (len % 4 != 0)
+    // Check if the length is either 2 or a multiple of 4
+    if (len % 4 != 0 && len != 2)
     {
-        Serial.println("Length must be a multiple of 4");
+        Serial.println("Length must be 2 or a multiple of 4");
         return;
     }
 
-    // Loop through each 4-byte group
+    // Handle the case where the length is exactly 2
+    if (len == 2)
+    {
+        uint8_t temp = data[0];
+        data[0] = data[1];
+        data[1] = temp;
+        return;
+    }
+
+    // Loop through each 4-byte group for lengths that are multiples of 4
     for (int i = 0; i < len; i += 4)
     {
         // Swap bytes within the group
@@ -126,8 +136,15 @@ void DataParser::dataswapendian(uint8_t *data, int len)
 
 double DataParser::parseFP1632(const uint8_t *data)
 {
-    uint32_t fpfrac = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0];
-    uint16_t fpint = (data[5] << 8) | data[4];
+    int32_t fpfrac;
+    int16_t fpint;
+
+    // Note: memcpy is used to prevent issues caused by alignment requirements
+    memcpy(&fpfrac, data, sizeof(fpfrac));
+    memcpy(&fpint, data + 4, sizeof(fpint));
+
+    dataswapendian(reinterpret_cast<uint8_t*>(&fpfrac), sizeof(fpfrac));
+    dataswapendian(reinterpret_cast<uint8_t*>(&fpint), sizeof(fpint));
 
     int64_t fp_i64 = (static_cast<int64_t>(fpint) << 32) | (static_cast<int64_t>(fpfrac) & 0xffffffff);
 
@@ -187,10 +204,8 @@ void DataParser::parseMTData2(uint8_t *data, uint8_t datalength)
             offset++;
             uint16_t tm_year = year - 1900; // Years since 1900
             uint8_t tm_mon = month - 1;    // Months since January
-            //uint32_t dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
-            uint32_t epochTime = dateTimeToEpoch(tm_year, tm_mon, day, hour, minute, sec);
             // Convert to time_t (seconds since 1st Jan 1970)
-            m_xspacket->utcTime = epochTime + nanosec* 1e-9;
+            m_xspacket->utcTime = dateTimeToEpoch(tm_year, tm_mon, day, hour, minute, sec, nanosec);
             m_xspacket->utcTimeAvailable = true;
             break;
         }
@@ -211,6 +226,13 @@ void DataParser::parseMTData2(uint8_t *data, uint8_t datalength)
             dataswapendian(&data[offset], 12);
             memcpy(m_xspacket->acc, &data[offset], 12);
             m_xspacket->accAvailable = true;
+            offset += 12;
+            break;
+
+        case XDI_FreeAcceleration: // Free Acceleration
+            dataswapendian(&data[offset], 12);
+            memcpy(m_xspacket->freeacc, &data[offset], 12);
+            m_xspacket->freeaccAvailable = true;
             offset += 12;
             break;
 
@@ -240,6 +262,7 @@ void DataParser::parseMTData2(uint8_t *data, uint8_t datalength)
             offset += 12;
             break;
         case XDI_StatusWord: // StatusWord
+            dataswapendian(&data[offset], 4);
             memcpy(&m_xspacket->statusWord, &data[offset], 4);
             m_xspacket->statusWordAvailable = true;
             offset += 4;

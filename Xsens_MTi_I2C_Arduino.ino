@@ -41,26 +41,39 @@ void loop() {
 void liveDataHandler(const XsDataPacket& packet) {
 
   String output_str = "";
+  if (packet.utcTimeAvailable) {
+    output_str += "Utctime epochSeconds: " + String(packet.utcTime, 6) + "\n";
+  }
+  if (packet.sampleTimeFineAvailable) {
+    output_str += "SampleTimeFine: " + String(packet.sampleTimeFine) + "\n";
+  }
   if (packet.eulerAvailable) {
-    output_str += "Roll: " + String(packet.euler[0]) + ", Pitch: " + String(packet.euler[1]) + ", Yaw: " + String(packet.euler[2]) + "\n";
+    output_str += "Roll: " + String(packet.euler[0], 3) + ", Pitch: " + String(packet.euler[1], 3) + ", Yaw: " + String(packet.euler[2], 3) + "\n";
+  }
+  if (packet.quaternionAvailable) {
+    output_str += "q0: " + String(packet.quat[0], 3) + ", q1: " + String(packet.quat[1], 3) + ", q2: " + String(packet.quat[2], 3) + ", q3: " + String(packet.quat[3], 3) + "\n";
   }
   if (packet.accAvailable) {
-    output_str += "Acc x: " + String(packet.acc[0]) + ", Acc y: " + String(packet.acc[1]) + ", Acc z: " + String(packet.acc[2])+ "\n";
+    output_str += "Acc x: " + String(packet.acc[0], 3) + ", Acc y: " + String(packet.acc[1], 3) + ", Acc z: " + String(packet.acc[2], 3) + "\n";
   }
   if (packet.gyroAvailable) {
-    // float rateOfTurnDegree[3];
-    // //RateOfTurn is in radians/sec, convert to degrees/sec.
-    // rateOfTurnDegree[0] = packet.rad2deg * packet.gyro[0];
-    // rateOfTurnDegree[1] = packet.rad2deg * packet.gyro[1];
-    // rateOfTurnDegree[2] = packet.rad2deg * packet.gyro[2];
-
-    // String gyro_str = "Gyro(dps), x: " + String(rateOfTurnDegree[0]) + ", y: " + String(rateOfTurnDegree[1])  + ", z: " + String(rateOfTurnDegree[2]) ;
-    output_str += "Gyro x: " + String(packet.gyro[0]) + ", Gyro y: " + String(packet.gyro[1]) + ", Gyro z: " + String(packet.gyro[2])+ "\n";
+    output_str += "Gyro x: " + String(packet.gyro[0], 3) + ", Gyro y: " + String(packet.gyro[1], 3) + ", Gyro z: " + String(packet.gyro[2], 3) + "\n";
   }
   if (packet.magAvailable) {
-    output_str += "Mag, x: " + String(packet.mag[0]) + ", y: " + String(packet.mag[1]) + ", z: " + String(packet.mag[2])+ "\n";
-    Serial.println(output_str);
+    output_str += "Mag x: " + String(packet.mag[0], 3) + ", Mag y: " + String(packet.mag[1], 3) + ", Mag z: " + String(packet.mag[2], 3) + "\n";
+  }
+  if (packet.latlonAvailable && packet.altitudeAvailable) {
+    output_str += "Lat: " + String(packet.latlon[0], 6) + ", Lon: " + String(packet.latlon[1], 6) + ", Alt: " + String(packet.altitude, 6) + "\n";
+  }
+  if (packet.velocityAvailable) {
+    output_str += "Vel E: " + String(packet.vel[0], 6) + ", Vel N: " + String(packet.vel[1], 6) + ", Vel U: " + String(packet.vel[2], 6) + "\n";
+  }
+  if (packet.freeaccAvailable) {
+    output_str += "Free Acc x: " + String(packet.freeacc[0], 3) + ", Free Acc y: " + String(packet.freeacc[1], 3) + ", Free Acc z: " + String(packet.freeacc[2], 3) + "\n";
+  }
+  if (packet.statusWordAvailable) {
+    output_str += "statusWord: " + String(packet.statusWord) + "\n";
   }
 
-  
+  Serial.println(output_str);
 }

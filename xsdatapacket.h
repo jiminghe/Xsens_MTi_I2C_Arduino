@@ -13,6 +13,9 @@ struct XsDataPacket {
     float acc[3];
     bool accAvailable = false;  
 
+    float freeacc[3];
+    bool freeaccAvailable = false;  
+
     float gyro[3];
     bool gyroAvailable = false;
 

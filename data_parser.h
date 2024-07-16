@@ -19,8 +19,8 @@ private:
     double parseFP1632(const uint8_t* data);
     bool isLeapYear(uint16_t year);
     uint32_t dateToEpochDays(uint16_t year, uint8_t month, uint8_t day);
-    uint32_t dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day,
-                         uint8_t hour, uint8_t minute, uint8_t second);
+    double dateTimeToEpoch(uint16_t year, uint8_t month, uint8_t day,
+                         uint8_t hour, uint8_t minute, uint8_t second, uint32_t nanosecond);
 
     XsDataPacket* m_xspacket;
     size_t m_packet_length;
