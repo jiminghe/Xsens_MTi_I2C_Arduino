@@ -7,6 +7,8 @@
 #define MTI_I2C_DEVICE_ADDRESS 0x6B  //Default I2C address, if you want to change the address of MTi-3, connect the ADD0/1/2 pins to GND according to the MTi-1 Datasheet.
 #define DATA_READY_PIN 3             // GPIO3 for DRDY line
 
+#define RESET_PIN 5  // GPIO5 for reset for mti-8
+
 MtsspDriver* driver = NULL;
 MtApplication* app = NULL;
 bool startIsOk = false;
@@ -15,12 +17,15 @@ void liveDataHandler(const XsDataPacket& packet);
 
 void setup() {
   driver = new MtsspDriverI2c(MTI_I2C_DEVICE_ADDRESS);
-  app = new MtApplication(driver, DATA_READY_PIN);
+  app = new MtApplication(driver, DATA_READY_PIN, RESET_PIN);
 
   Serial.begin(115200);
   Wire.begin();
   delay(500);                      // Delay 0.5sec to allow I2C bus to stabilize
   pinMode(DATA_READY_PIN, INPUT);  //Set DATA_READY_PIN as input, indicates whether data/notifications are available to be read
+  
+  pinMode(RESET_PIN, OUTPUT);// Set the reset pin as an output
+  digitalWrite(RESET_PIN, LOW); //drive the pin low
   // Serial.println("setup is called");
 
   if (app->start()) {

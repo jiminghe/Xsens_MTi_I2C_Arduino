@@ -38,7 +38,7 @@ typedef void (*LiveDataCallback)(const XsDataPacket*, size_t size);
 
 class MtApplication {
 public:
-  MtApplication(MtsspDriver* driver, uint8_t drdy);
+  MtApplication(MtsspDriver* driver, uint8_t drdy, uint8_t resetpin);
   ~MtApplication();
   bool start();
   void readData();
@@ -59,9 +59,9 @@ private:
   LiveDataCallback onLiveDataAvailable = nullptr;
   XsDataPacket m_packet;
 
-  // std::function<void(const XsDataPacket&)> onLiveDataAvailable;
 
   uint8_t m_drdy;
+  uint8_t m_resetpin;
   DataParser* m_parser; //For Arduino, we must use dynamic library for this, otherwise, the prints get stuck.
   XsDataPacket* m_xspacket;
 };

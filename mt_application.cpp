@@ -4,8 +4,8 @@
 #include "xbustostring.h"
 #include "data_parser.h"
 
-MtApplication::MtApplication(MtsspDriver* driver, uint8_t drdy)
-  : m_state(STATE_Idle), m_driver(driver), m_drdy(drdy) {
+MtApplication::MtApplication(MtsspDriver* driver, uint8_t drdy, uint8_t resetpin)
+  : m_state(STATE_Idle), m_driver(driver), m_drdy(drdy), m_resetpin(resetpin) {
   m_device = new MtsspInterface(m_driver);
   m_parser = new DataParser();
   m_xspacket = new XsDataPacket();
@@ -81,14 +81,6 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
           m_device->sendXbusMessage(m_xbusTxBuffer);
           m_state = STATE_WaitForDeviceId;
         }
-        else
-        {
-          //doesn't work, have to reset it again, this is useful for the first time powering up the Arduino Mega board.
-          Serial.println("Resetting the device again");
-          m_state = STATE_Idle;
-          handleEvent(EVT_Start);
-        }
-
       }
       break;
 
@@ -173,8 +165,9 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
           {
             //Debug print the raw hex bytes
             // int data_length = data[3] + 5;
-            // String hexStr = bytesToHexString(data, data_length);
-            // Serial.println(hexStr);
+            // `Serial.write()` sends the raw bytes to the serial port
+            // Serial.write(data, data_length);
+
             m_parser->parseDataPacket(data);
             m_xspacket = m_parser->getXsDatePacket();
             
@@ -189,12 +182,14 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
 }
 
 
-
+//Hardware reset the MTi-1
 void MtApplication::resetDevice() {
-  //Software reset: FA FF 40 00 C1
-  // cout << "MtApplication::resetDevice sending reset message 40 00 C1" <<endl;
-  Xbus_message(m_xbusTxBuffer, 0xFF, XMID_Reset, 0);
-  m_device->sendXbusMessage(m_xbusTxBuffer);
+  // Drive the pin low to reset the sensor
+  digitalWrite(m_resetpin, HIGH);
+  delay(1000);  // Keep the pin high for 1000 milliseconds
+
+  //drive the pin low again
+  digitalWrite(m_resetpin, LOW);
 }
 
 
