@@ -184,7 +184,7 @@ void MtApplication::handleEvent(Event event, const uint8_t* data) {
 
 //Hardware reset the MTi-1
 void MtApplication::resetDevice() {
-  // Drive the pin low to reset the sensor
+  // Drive the pin high to reset the sensor
   digitalWrite(m_resetpin, HIGH);
   delay(1000);  // Keep the pin high for 1000 milliseconds
 
