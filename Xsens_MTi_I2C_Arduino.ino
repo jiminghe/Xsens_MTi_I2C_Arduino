@@ -21,6 +21,7 @@ void setup() {
 
   Serial.begin(115200);
   Wire.begin();
+  Wire.setClock(400000UL); //Set I2C Clock to 400kHz Fast Mode.
   delay(500);                      // Delay 0.5sec to allow I2C bus to stabilize
   pinMode(DATA_READY_PIN, INPUT);  //Set DATA_READY_PIN as input, indicates whether data/notifications are available to be read
   
